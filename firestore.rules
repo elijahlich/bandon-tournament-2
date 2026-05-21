@@ -1,0 +1,23 @@
+// Firestore security rules for the Bandon tournament app.
+//
+// This rule set: anyone can read or write data in the "bandon-2026" collection.
+// That's fine for a closed buddy-trip app where the URL is the access control —
+// you only share the Vercel URL with your 8 friends, and there's nothing
+// sensitive in the data (just golf scores and handicaps).
+//
+// If you want to lock this down later (e.g., require Firebase Auth sign-in),
+// see the README "Optional: lock down access" section.
+//
+// To install these rules:
+//   1. Firebase Console → Firestore Database → Rules tab
+//   2. Paste the contents below
+//   3. Click "Publish"
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /bandon-2026/{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
