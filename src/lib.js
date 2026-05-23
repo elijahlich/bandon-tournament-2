@@ -127,7 +127,10 @@ export function roundToHalf(n) {
 
 export function courseHandicap(hcpIndex, course) {
   if (!course || hcpIndex == null) return 0;
-  return Math.round(hcpIndex * (course.slope / 113) + (course.rating - course.par));
+  // Round to nearest 0.5 (was: nearest integer). This lets us carry the
+  // half-stroke granularity through every downstream calculation.
+  const raw = hcpIndex * (course.slope / 113) + (course.rating - course.par);
+  return Math.round(raw * 2) / 2;
 }
 
 // Returns a course with rating/slope adjusted for the round's tees.
@@ -144,15 +147,30 @@ export function effectiveCourse(round, courses) {
 }
 
 export function applyAllowance(ch, allowance) {
-  return Math.round(ch * (allowance ?? 1.0));
+  // Round to nearest 0.5 so half-strokes survive the allowance multiplication.
+  return Math.round(ch * (allowance ?? 1.0) * 2) / 2;
 }
 
 export function strokesOnHole(ch, si) {
   if (!ch || ch <= 0) return 0;
+  // Whole-stroke logic (unchanged): full strokes on the hardest holes,
+  // wrapping for very high handicaps (>18, >36).
+  const wholeCh = Math.floor(ch);
+  const hasHalf = (ch - wholeCh) >= 0.5;
   let s = 0;
-  if (si <= ch)        s += 1;
-  if (si <= ch - 18)   s += 1;
-  if (si <= ch - 36)   s += 1;
+  if (si <= wholeCh)        s += 1;
+  if (si <= wholeCh - 18)   s += 1;
+  if (si <= wholeCh - 36)   s += 1;
+  // Half-stroke: if the handicap has a 0.5 remainder, it goes on the next
+  // hole after the whole strokes end — i.e. (wholeCh % 18) + 1.
+  // Examples:
+  //   ch=3.5 → halfSi=4   (half stroke on SI 4)
+  //   ch=18.5 → halfSi=1  (every hole had 1 stroke; SI 1 now gets 1.5)
+  //   ch=22.5 → halfSi=5  (SI 1–4 got 2 strokes; SI 5 now gets 1.5)
+  if (hasHalf) {
+    const halfSi = (wholeCh % 18) + 1;
+    if (si === halfSi) s += 0.5;
+  }
   return s;
 }
 
@@ -167,6 +185,22 @@ export function capScore(raw, par) {
   if (n == null) return null;
   if (!par) return n;
   return Math.min(n, par + MAX_OVER_PAR);
+}
+
+// Display helpers for half-stroke-aware values.
+// Net totals and to-par figures can now end in .5 — these helpers print
+// "72" for integers and "72.5" for halves, "+2"/"E"/"-1.5" for to-par.
+export function fmtScore(n) {
+  if (n == null || !Number.isFinite(n)) return '—';
+  if (Number.isInteger(n)) return String(n);
+  return n.toFixed(1);
+}
+
+export function fmtToPar(n) {
+  if (n == null || !Number.isFinite(n)) return '';
+  if (n === 0) return 'E';
+  const abs = Number.isInteger(n) ? String(Math.abs(n)) : Math.abs(n).toFixed(1);
+  return (n > 0 ? '+' : '-') + abs;
 }
 
 export function lowestHcpPlayer(players) {

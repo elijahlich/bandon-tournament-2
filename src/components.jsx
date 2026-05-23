@@ -13,6 +13,7 @@ import {
   TEE_OPTIONS, MAX_OVER_PAR,
   effectiveCourse, courseHandicap, strokesOnHole, adjustedCH,
   playerTotalsAdj, lowestHcpPlayer, capScore, safeNum, roundToHalf,
+  fmtScore, fmtToPar,
   computeSkinsForRound, computeSkinsOverall,
   computeMatch, computeAntiShtickStandings, projectR5Matchups, isR5Locked, regularPhaseComplete,
   computeHitAHouseQualifier, computeHitAHouseChampionship, qualifierComplete,
@@ -201,7 +202,7 @@ function HitAHouseBoard({ hahCh, meta }) {
             <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.yellowDark, fontWeight: 700 }}>Hit-A-House Champion</div>
             <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 700, fontSize: 20, color: C.greenDark, lineHeight: 1 }}>{results[0].player.name}</div>
             <div style={{ fontSize: 11, color: C.inkSoft, marginTop: 2 }}>
-              Monday net <span style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontWeight: 700, color: C.greenDark }}>{results[0].net}</span>
+              Monday net <span style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontWeight: 700, color: C.greenDark }}>{fmtScore(results[0].net)}</span>
             </div>
           </div>
         </div>
@@ -237,7 +238,7 @@ function HitAHouseBoard({ hahCh, meta }) {
                   <td style={{ ...styles.td, paddingLeft: 14, fontFamily: 'Fraunces, serif', fontWeight: 700, color: i === 0 && r.played > 0 ? C.red : C.inkSoft }}>{r.played > 0 ? i + 1 : '–'}</td>
                   <td style={{ ...styles.td, fontWeight: 600, color: C.greenDark, textAlign: 'left' }}>{r.player.name}</td>
                   <td style={{ ...styles.td, ...styles.tdMono }}>{r.played > 0 ? r.gross : '—'}</td>
-                  <td style={{ ...styles.td, ...styles.tdMono, fontWeight: 700, color: C.greenDark, background: i === 0 && r.played > 0 ? C.yellowSubtle : 'transparent' }}>{r.played > 0 ? r.net : '—'}</td>
+                  <td style={{ ...styles.td, ...styles.tdMono, fontWeight: 700, color: C.greenDark, background: i === 0 && r.played > 0 ? C.yellowSubtle : 'transparent' }}>{r.played > 0 ? fmtScore(r.net) : '—'}</td>
                   <td style={{ ...styles.td, ...styles.tdMono, color: C.inkSoft, fontSize: 11 }}>{r.played}/18</td>
                 </tr>
               ))}
@@ -286,14 +287,14 @@ function HitAHouseBoard({ hahCh, meta }) {
                         <td key={idx} style={{ ...styles.td, ...styles.tdMono }}>
                           {rr.played > 0 ? (
                             <div>
-                              <div style={{ fontWeight: 700, color: C.greenDark }}>{rr.net}</div>
-                              <div style={{ fontSize: 9, color }}>{rr.netToPar > 0 ? `+${rr.netToPar}` : rr.netToPar === 0 ? 'E' : rr.netToPar}</div>
+                              <div style={{ fontWeight: 700, color: C.greenDark }}>{fmtScore(rr.net)}</div>
+                              <div style={{ fontSize: 9, color }}>{fmtToPar(rr.netToPar)}</div>
                             </div>
                           ) : <span style={{ color: C.ashLight }}>—</span>}
                         </td>
                       );
                     })}
-                    <td style={{ ...styles.td, ...styles.tdMono, fontWeight: 700, color: C.greenDark, background: qualified ? C.yellowSubtle : 'transparent' }}>{row.anyPlayed ? row.totalNet : '—'}</td>
+                    <td style={{ ...styles.td, ...styles.tdMono, fontWeight: 700, color: C.greenDark, background: qualified ? C.yellowSubtle : 'transparent' }}>{row.anyPlayed ? fmtScore(row.totalNet) : '—'}</td>
                     <td style={styles.td}>{qualified ? <span style={{ color: C.yellowDark, fontWeight: 800, fontSize: 13 }}>★</span> : <span style={{ color: C.ashLight }}>·</span>}</td>
                   </tr>
                 );
@@ -862,16 +863,24 @@ function PlayerHoleRow({ player, isMe, strokes, par, currentScore, onChange, foc
         <div style={{ fontFamily: 'Fraunces, serif', fontSize: 18, fontWeight: 600, color: C.greenDark, display: 'flex', alignItems: 'center', gap: 6 }}>
           {player.name}
           {strokes > 0 && (
-            <span style={{ display: 'inline-flex', gap: 2 }}>
-              {Array.from({ length: strokes }).map((_, i) => (
+            <span style={{ display: 'inline-flex', gap: 2, alignItems: 'center' }}>
+              {Array.from({ length: Math.floor(strokes) }).map((_, i) => (
                 <span key={i} style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, background: C.red }} />
               ))}
+              {(strokes % 1) >= 0.5 && (
+                <span style={{
+                  display: 'inline-block', width: 8, height: 8, borderRadius: 4,
+                  background: `linear-gradient(90deg, ${C.red} 50%, transparent 50%)`,
+                  border: `1px solid ${C.red}`,
+                  boxSizing: 'border-box',
+                }} />
+              )}
             </span>
           )}
         </div>
         <div style={{ fontSize: 10, color: C.inkSoft, marginTop: 2 }}>
           HCP {player.hcp.toFixed(1)}
-          {strokes > 0 && <span style={{ color: C.red, marginLeft: 8, fontWeight: 600 }}>· {strokes} stroke{strokes > 1 ? 's' : ''}</span>}
+          {strokes > 0 && <span style={{ color: C.red, marginLeft: 8, fontWeight: 600 }}>· {fmtScore(strokes)} stroke{strokes !== 1 ? 's' : ''}</span>}
         </div>
       </div>
       <input
@@ -966,8 +975,8 @@ function PlayerRow({ player, isRef, isLast, courses, settings, refHcp, onUpdate,
               return (
                 <div key={c.name} style={{ fontSize: 9.5, color: C.inkSoft }}>
                   <span style={{ letterSpacing: '0.04em' }}>{c.name.toUpperCase()}</span>
-                  <span style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontWeight: 700, color: C.greenDark, marginLeft: 4 }}>{ch}</span>
-                  <span style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", color: C.red, marginLeft: 3 }}>({adj})</span>
+                  <span style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontWeight: 700, color: C.greenDark, marginLeft: 4 }}>{fmtScore(ch)}</span>
+                  <span style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", color: C.red, marginLeft: 3 }}>({fmtScore(adj)})</span>
                 </div>
               );
             })}
