@@ -164,3 +164,42 @@ export function persistMe(playerId) {
     return false;
   }
 }
+
+// ---------- Per-device foursome selections ----------
+// Each device remembers which 4 players they were playing with on each round.
+// Saved in localStorage as { [roundId]: [pid, pid, pid, pid] }.
+const FOURSOMES_KEY = `bandon-foursomes-${COLLECTION}`;
+
+export function loadFoursomes() {
+  try {
+    if (typeof window === 'undefined') return {};
+    const raw = localStorage.getItem(FOURSOMES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveFoursome(roundId, playerIds) {
+  try {
+    if (typeof window === 'undefined') return false;
+    const all = loadFoursomes();
+    all[roundId] = playerIds;
+    localStorage.setItem(FOURSOMES_KEY, JSON.stringify(all));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function clearFoursome(roundId) {
+  try {
+    if (typeof window === 'undefined') return false;
+    const all = loadFoursomes();
+    delete all[roundId];
+    localStorage.setItem(FOURSOMES_KEY, JSON.stringify(all));
+    return true;
+  } catch {
+    return false;
+  }
+}

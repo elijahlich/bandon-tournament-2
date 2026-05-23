@@ -1,8 +1,23 @@
 # Bandon Tournament Tracker
 
-Real-time scoring app for the Bandon Dunes boys trip, August 28–31. Tracks Hit-A-House Championship (individual net stroke play), Anti-Shtick Invitational (team match play), and skins across 6 rounds on 4 courses.
+Real-time scoring app for the Bandon Dunes boys trip, August 28–31. Tracks Hit-A-House Championship (individual net stroke play), Anti-Shtick Invitational (team match play, scored hole-by-hole), and skins across 6 rounds on 4 courses.
 
-This README walks you through deploying it for free using Firebase (database) + Vercel (hosting). End-to-end setup is about an hour.
+This README walks you through deploying it for free using Firebase (database) + Vercel (hosting).
+
+---
+
+## How scoring works
+
+**Hit-A-House Championship** — Individual net stroke play. R1, R2, R4 morning rounds qualify; lowest combined net advances. Top 4 play R6 on Monday from the green tees.
+
+**Anti-Shtick Invitational** — Team match play, hole-by-hole scoring across all 4 AS rounds (R2, R3, R4, R5).
+- Every hole you win = 1 point. Halved holes = 0.5 each.
+- The overall winner is whoever piles up the most total hole-wins across their 4 matches (max 72 if you win every hole).
+- After R4, top 2 teams meet in the Championship Final at R5 12:40 PM, bottom 2 in the Consolation Final at 12:50 PM. Both matches feed the same overall total — so the bottom-2 winner can still take the whole tournament if they steamroll their match.
+
+**Skins** — Every round, every hole. Strokes off the field's lowest handicap (Alex). Optional carryover for ties (toggle in Setup).
+
+**Score cap** — Any individual hole maxes at par + 4. (Enter higher and it auto-caps on blur.)
 
 ---
 
@@ -14,79 +29,54 @@ This README walks you through deploying it for free using Firebase (database) + 
 4. Push to GitHub
 5. Deploy to Vercel and get a shareable URL
 
-You'll need accounts on **GitHub**, **Firebase** (Google account), and **Vercel** (sign in with GitHub). All free. You'll also need **Node.js 18+** installed locally — grab it from https://nodejs.org if you don't have it.
+You'll need accounts on **GitHub**, **Firebase** (Google account), and **Vercel** (sign in with GitHub). All free. You'll also need **Node.js 18+** — grab it from https://nodejs.org if you don't have it.
 
 ---
 
-## Step 1: Install and try it locally (5 min)
-
-In a terminal, in this folder:
+## Step 1: Install and try it locally
 
 ```bash
 npm install
-```
-
-That installs React, Vite, Firebase, and lucide-react. Takes 30 seconds.
-
-```bash
 npm run dev
 ```
 
-Open http://localhost:5173 in your browser. You'll see a "Firebase setup required" screen — expected, you haven't configured anything yet. Move to Step 2.
+Open http://localhost:5173 — you'll see a "Firebase setup required" screen. Expected. Move to Step 2.
 
 ---
 
-## Step 2: Create the Firebase project (5 min)
+## Step 2: Create the Firebase project
 
-1. Go to https://console.firebase.google.com
-2. Click **Add project** (or **Create a project**)
-3. Name it whatever you want, e.g. `bandon-2026`. Click **Continue**.
-4. **Disable Google Analytics** when asked — not needed and adds friction. Click **Create project**.
-5. Wait ~30 seconds for provisioning, then click **Continue**.
+1. https://console.firebase.google.com → **Add project**
+2. Name it `bandon-2026` → **Continue**
+3. **Disable Google Analytics** → **Create project**
 
 ---
 
-## Step 3: Enable Firestore (3 min)
+## Step 3: Enable Firestore
 
-1. In the left sidebar of your new Firebase project, click **Build → Firestore Database**
-2. Click **Create database**
-3. Pick **Start in production mode** → **Next**
-4. For location, pick **`us-west1` (Oregon)** — closest to Bandon, lowest latency. (Or whichever region is closest to your group.) Click **Enable**.
-
-Wait ~30 seconds for it to provision.
+1. **Build → Firestore Database → Create database**
+2. **Standard edition → Next**
+3. Database ID: `(default)`. Location: `us-west1 (Oregon)` → **Next**
+4. Pick **Production mode** → **Create**
 
 ---
 
-## Step 4: Set the security rules (2 min)
+## Step 4: Set the security rules
 
-The default rules block all reads/writes. Replace them:
-
-1. In Firestore, click the **Rules** tab (top of the page)
-2. Select all existing text and delete it
+1. In Firestore, click the **Rules** tab
+2. Delete what's there
 3. Paste the contents of `firestore.rules` from this project
 4. Click **Publish**
 
-This allows anyone with your app URL to read and write tournament data. For a buddy trip where you control who has the URL, this is the right tradeoff — it avoids requiring everyone to sign in. See "Optional: lock down access" at the bottom of this README for tighter security.
-
 ---
 
-## Step 5: Get your Firebase config (3 min)
+## Step 5: Get your Firebase config
 
-1. In the top-left of the Firebase console, click the **gear icon** next to "Project Overview" → **Project settings**
-2. Scroll down to **Your apps**
-3. Click the **`</>`** icon (Web app)
-4. Give it a nickname like `Bandon Tournament Web` → **Register app**
-5. Firebase shows you a code block with `firebaseConfig = { ... }`. Copy these six values.
-
-Now plug them into your project:
-
-1. In this folder, copy the example env file:
-   ```bash
-   cp .env.example .env
-   ```
-2. Open `.env` in any text editor and fill in the values from the Firebase console.
-
-The keys map like this:
+1. **Gear icon (top-left) → Project settings**
+2. Scroll to **Your apps** → click the **`</>`** web icon
+3. Nickname: `Bandon Web` → **Register app** (skip "Set up Firebase Hosting")
+4. Copy the six values from `firebaseConfig`
+5. Locally: `cp .env.example .env` and fill in the values:
 
 | Firebase console | .env variable |
 |---|---|
@@ -97,137 +87,83 @@ The keys map like this:
 | `messagingSenderId` | `VITE_FIREBASE_MESSAGING_SENDER_ID` |
 | `appId` | `VITE_FIREBASE_APP_ID` |
 
-**These keys aren't secret** — they identify your project to the SDK, but actual security is enforced by Firestore rules (which you set in Step 4). It's fine to commit them to a private repo. Don't commit them to a public repo as a matter of hygiene.
-
 ---
 
-## Step 6: Test locally with real Firebase (2 min)
+## Step 6: Test locally with real Firebase
 
 ```bash
 npm run dev
 ```
 
-Open http://localhost:5173. You should now see the player picker on first launch ("Which one are you?"). Pick yourself, enter a few test scores. Open a second browser window (incognito or another browser entirely) and load the same URL — you should see scores update within ~1 second across both windows. That confirms Firebase is wired up correctly.
+Open http://localhost:5173. Pick yourself on the "Which one are you?" screen, enter a few test scores. Open the same URL in another browser window — scores should sync within a second.
 
-To verify the data is hitting Firestore: in the Firebase console, go to **Firestore Database** → you should see a `bandon-2026` collection appear with `meta`, `settings`, and `scores-r1` documents.
-
-When you're done testing, wipe the test data: in the app, go to **Setup tab → Reset everything to defaults**.
+When done testing: **Setup tab → Reset everything to defaults** to wipe test data.
 
 ---
 
-## Step 7: Push to GitHub (5 min)
+## Step 7: Push to GitHub
 
-If you don't have a GitHub repo yet:
+If your repo is already set up, just commit and push the new code via GitHub Desktop. The new `src/` folder has these files:
 
-1. Go to https://github.com → click **New repository**
-2. Name it `bandon-tournament` (or anything else). **Private** is fine. Don't add a README/license — we already have a README.
-3. Click **Create repository**
-4. Follow the "push an existing repository" instructions GitHub shows. Roughly:
-
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/bandon-tournament.git
-git push -u origin main
+```
+src/App.jsx          (main app)
+src/components.jsx   (UI components)
+src/firebase.js      (Firebase init)
+src/lib.js           (constants + math)
+src/main.jsx         (React entry)
+src/storage.js       (Firestore data layer)
+src/styles.js        (Masters-inspired styling)
 ```
 
-The `.env` file is in `.gitignore`, so your Firebase keys won't be pushed. Vercel will get them via its own env-vars system in Step 8.
+`.env` stays out of GitHub (it's in `.gitignore`).
 
 ---
 
-## Step 8: Deploy to Vercel (5 min)
+## Step 8: Deploy to Vercel
 
-1. Go to https://vercel.com → **Sign Up** with your GitHub account
-2. On the dashboard, click **Add New… → Project**
-3. Find your `bandon-tournament` repo in the list, click **Import**
-4. Vercel auto-detects this as a Vite app. Don't change the build settings.
-5. Expand **Environment Variables**. Add all six `VITE_FIREBASE_*` variables — same names and values as your local `.env`. Don't forget any.
-6. Click **Deploy**. Takes 60–90 seconds.
+If you already have a Vercel project pointed at this repo, just push — it auto-redeploys in 60–90 seconds. Otherwise:
 
-When it's done, you'll get a URL like `bandon-tournament-abc123.vercel.app`. Click it to open. The app loads with live data from Firestore. **Share this URL with your friends.**
-
-To update the app later, just `git push` to your `main` branch — Vercel auto-rebuilds and redeploys in ~60 seconds.
+1. https://vercel.com → **Add New… → Project**
+2. Import the GitHub repo
+3. Expand **Environment Variables** and add all six `VITE_FIREBASE_*` (same names and values as your `.env`)
+4. **Deploy**
 
 ---
 
-## Step 9: Optional — custom domain or shorter URL
+## Using the app on game day
 
-The default `*.vercel.app` URL is fine, but you can change it.
+1. **Open the URL on your phone.** Add to home screen for quick access.
+2. **First time only:** tap your name on the "Which one are you?" screen.
+3. Tap **Scoring** at the bottom → tap your round → tap your tee time → **Begin Round**.
+4. Enter all 4 scores for hole 1 → tap **Next Hole**. Repeat 17 more times.
+5. Need to fix a previous hole? Tap **Previous Hole** or use the hole-number grid at the bottom of the screen.
+6. After hole 18: tap **Finish Round ✓** to go back.
+7. **Boards** tab shows live leaderboards. They update in real time as any of you enter scores.
 
-**Free option**: In Vercel → your project → **Settings → Domains**, you can rename the subdomain to something cleaner like `bandon-2026.vercel.app` if it's available.
-
-**Paid option ($10–15/year)**: Buy a domain on Namecheap or Cloudflare and point it at Vercel. Vercel → Settings → Domains has step-by-step instructions.
+**Locking in R5 finalists:** After R4 wraps, open R5 from the Scoring tab — there's a "Lock in finalists" button at the top. It snaps the matchups based on current AS standings (top 2 → Championship 12:40, bottom 2 → Consolation 12:50). Both matches count toward the overall AS title.
 
 ---
 
 ## Cost expectations
 
-**Will I get a bill?** No. Here's why.
+For a 4-day, 8-person tournament:
+- ~15 KB of data total
+- ~8,000 reads/day at peak
+- ~1,500 writes/day at peak
 
-For your 4-day, 8-person tournament, the app will generate:
-- **~15 KB of data total**
-- **~8,000 reads on the busiest day** (8 people × real-time subscriptions × 4 hours active per round)
-- **~1,500 writes on the busiest day** (8 people × 18 holes × 6 rounds, spread over 4 days)
-
-Firebase Spark (free) tier limits, per day:
-- 1 GB storage (you use < 0.001%)
-- 50,000 reads (you use < 16%)
-- 20,000 writes (you use < 8%)
-
-Vercel Hobby (free) tier limits, per month:
-- 100 GB bandwidth (you use < 1 GB)
-
-Both free tiers are permanent — they don't expire after a trial period. The only way you'd get a bill is if you opt into a paid tier, which there's no reason to do.
+Firebase Spark (free) tier limits per day: 1 GB storage, 50,000 reads, 20,000 writes. You'll use well under 1% of any limit.
 
 ---
 
 ## Troubleshooting
 
-**"Firebase setup required" screen after deploying to Vercel.** Env vars aren't set. Vercel → Project → Settings → Environment Variables — make sure all six `VITE_FIREBASE_*` are there. After adding, go to the Deployments tab and click **Redeploy** on the latest one.
+**"Firebase setup required" after deploy.** Env vars missing. Vercel → Project → Settings → Environment Variables → confirm all six. Then Deployments tab → Redeploy.
 
-**Scores show locally but not on a friend's phone.** Most likely: they're hitting a cached version. Have them hard-refresh (long-press the reload button on mobile) or close and reopen the browser tab.
+**Scores show locally but not on a friend's phone.** Hard refresh (long-press reload on mobile). The data IS in Firestore; the issue is a cached old build.
 
-**"Missing or insufficient permissions" error in the console.** Firestore rules weren't published. Repeat Step 4.
+**A score I entered didn't save / shows wrong.** The score may have been capped at par + 4. That's by design.
 
-**Schema changed and I want to start fresh.** In the app, **Setup tab → Reset everything to defaults**. This wipes the Firestore data and reseeds with the current code defaults.
+**The Boards page hasn't updated.** Subscriptions auto-update within a second. If it seems stuck, tap the refresh button at the top-right.
 
-**Anyone with the URL can edit scores — including by accident.** Yes, that's the current setup. If someone's editing the wrong player's column, that's a UX risk, not a security one. The app has a "who am I" picker that highlights your own column in orange to mitigate this; remind your friends to set it on first launch.
+**I want to start over.** Setup tab → Reset everything to defaults.
 
----
-
-## Optional: lock down access
-
-If you want only specific email addresses to be able to edit:
-
-1. Firebase Console → **Build → Authentication → Get started**
-2. Enable **Email/Password** and/or **Google** sign-in
-3. Update `firestore.rules` to require `request.auth != null` (or check email against a whitelist)
-4. Add a sign-in flow to the app — this is ~30 minutes of additional code; let me know if you want help
-
-For 8 friends sharing a private URL, this is almost always overkill. Skip unless you're paranoid.
-
----
-
-## File layout
-
-```
-bandon-tournament/
-├── .env.example              Template for Firebase config (copy to .env)
-├── .gitignore                Don't commit .env or node_modules
-├── README.md                 You are here
-├── firestore.rules           Security rules to paste into Firebase console
-├── index.html                Entry HTML
-├── package.json              Dependencies and scripts
-├── vite.config.js            Vite build config
-└── src/
-    ├── App.jsx               The whole app — UI, math, leaderboards
-    ├── firebase.js           Firebase init from env vars
-    ├── main.jsx              React entry point
-    └── storage.js            Firestore data-access layer
-```
-
-The entire app logic lives in `src/App.jsx` (~2,000 lines). If you want to tweak rules (tiebreakers, scoring, etc.), that's where.
-
-The data layer is `src/storage.js`. It exposes a small API (`loadAll`, `subscribeAll`, `persistScoreCell`, etc.) and is the only file that knows about Firestore — everything else is plain React.
